@@ -370,6 +370,70 @@ How to observe it: trigger an SQL error (an apostrophe in the search box) and lo
 
 Correct fix: in production set `display_errors = Off` and `log_errors = On`, write errors to a log file, and show the user only a generic message. Also set `expose_php = Off`.
 
+## File inclusion lab (isolated, PHP 5.4)
+
+A second, separate exercise, isolated from the rest of the shop:
+
+```
+legacy-php/
+  Dockerfile              php:5.4-fpm image
+  lab.ini                 session settings for this exercise
+  public/
+    include_sink.php      the vulnerable sink
+```
+
+It runs as its own `legacy-php` service and its own Nginx port, `8081`, next to the shop's `8080`. It does not touch the shop's code, database or sessions in any way. This separation exists because PHP 5.4 does not understand the `??` operator the shop's own code uses everywhere (added in PHP 7.0), so running the whole shop on 5.4 would break every page; keeping it as a second, independent service lets this exercise use an old PHP build without breaking anything else.
+
+### include_sink.php versus preview.php
+
+Both read a file named in a URL parameter, but they are not the same class of bug. `preview.php` in the main shop (vulnerability 11 above) calls `file_get_contents()`, so whatever it reads comes back as text or triggers stored XSS if a browser renders it, but it is never run as code. `include_sink.php` calls `include()` instead, so if the target file contains a `<?php` block, that block executes on the server. That is Local File Inclusion with code execution, not just information disclosure.
+
+```php
+$file = isset($_GET['file']) ? $_GET['file'] : '';
+if ($file && file_exists($file)) {
+    include($file);
+}
+```
+
+### The session configuration
+
+`legacy-php/lab.ini` sets:
+
+```ini
+session.upload_progress.enabled = On
+session.upload_progress.cleanup = Off
+session.use_strict_mode = Off
+session.use_only_cookies = Off
+```
+
+Historically, while a multipart file upload was still being received, PHP would write progress data, including a field name supplied by the client, into the session's own storage file. With `cleanup = Off` that data is not erased once the request completes. `use_strict_mode = Off` and `use_only_cookies = Off` mean the server will accept a session ID the client picks itself, rather than only one it generated. Together, this is what an LFI endpoint like `include_sink.php` needs to turn a file read into code execution: the attacker's own session file becomes a file on disk whose name and content they both control.
+
+This specific technique does not work against the shop's own PHP 8.4.4 service. The race condition it depends on was closed in the PHP engine itself in versions 5.4.11 and 5.3.21 (released in 2012-2013), which is why this lab deliberately runs an old, unsupported PHP build to reproduce it rather than relying on configuration alone. This repository does not include a script that performs the actual race-condition exploit; the lab provides the vulnerable conditions for study, not a working attack tool.
+
+### Verifying the environment
+
+Confirm the PHP version in the isolated container (should show `5.4.x`, not the shop's `8.4.4`):
+
+```bash
+docker compose exec legacy-php php -v
+```
+
+Confirm the session settings took effect:
+
+```bash
+docker compose exec legacy-php php -i | grep -i upload_progress
+docker compose exec legacy-php php -i | grep -i "session.use_strict_mode\|session.use_only_cookies"
+```
+
+Confirm the sink is reachable and the shop is unaffected:
+
+```bash
+curl -I http://127.0.0.1:8081/include_sink.php
+curl -I http://127.0.0.1:8080/index.php
+```
+
+Note on `php:5.4-fpm`: this tag is old enough that it may have been removed from Docker Hub by the time you build this. If `docker compose build legacy-php` fails to pull the image, try `php:5.6-fpm` in `legacy-php/Dockerfile` instead (edit the `FROM` line), which is more likely to still be available; the rest of this lab works the same way under 5.6, since the same race condition was present in all PHP versions before 5.4.11 / 5.3.21.
+
 ## Discussion questions for the class
 
 1. Which vulnerabilities can be chained to increase impact? For example, stored XSS together with the missing `HttpOnly` flag on the cookie.

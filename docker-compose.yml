@@ -10,6 +10,16 @@ services:
              chmod -R 777 /var/www/html/data /var/www/html/public/uploads &&
              php-fpm"
 
+  # VULNERABLE: isolated, end-of-life PHP 5.4 service used only for the
+  # file inclusion lab below (see README). Separate from the main shop so
+  # that downgrading PHP here cannot break the shop's own code, which
+  # needs PHP 7+ syntax.
+  legacy-php:
+    build: ./legacy-php
+    container_name: shoplab-legacy-php
+    volumes:
+      - ./legacy-php/public:/var/www/legacy
+
   nginx:
     image: nginx:1.27-alpine
     container_name: shoplab-nginx
@@ -17,8 +27,12 @@ services:
       # Reachable from the local network (bridged virtual machines, your own PC).
       # To lock it to this machine only, put BIND_IP=127.0.0.1 in a .env file.
       - "${BIND_IP:-0.0.0.0}:8080:80"
+      # Port for the isolated file inclusion lab (legacy-php, PHP 5.4)
+      - "${BIND_IP:-0.0.0.0}:8081:81"
     volumes:
       - ./src:/var/www/html:ro
+      - ./legacy-php/public:/var/www/legacy:ro
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - php
+      - legacy-php
