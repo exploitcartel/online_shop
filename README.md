@@ -73,6 +73,39 @@ ssh -L 8080:127.0.0.1:8080 username@UBUNTU_IP
 
 Then open http://127.0.0.1:8080 on your own computer.
 
+## Access from another machine (bridged network)
+
+By default the lab listens on `127.0.0.1` only, on purpose, so nobody else on the network can reach a vulnerable application. With a VirtualBox bridged adapter the virtual machine gets its own address on your network, but the port still answers only on the loopback address, so other machines get "connection refused".
+
+To open it from your main computer, publish the port on the virtual machine's network address only, using an override file that is not committed to Git:
+
+```bash
+IP=$(hostname -I | awk '{print $1}')
+cat > docker-compose.override.yml <<EOF
+services:
+  nginx:
+    ports:
+      - "$IP:8080:80"
+EOF
+docker compose up -d
+echo "Open http://$IP:8080 from your main computer"
+```
+
+If Ubuntu runs the `ufw` firewall, allow only your own network (adjust the range):
+
+```bash
+sudo ufw allow from 192.168.1.0/24 to any port 8080 proto tcp
+```
+
+To go back to localhost only:
+
+```bash
+rm docker-compose.override.yml
+docker compose up -d
+```
+
+Use this only on a private, trusted network. Never publish the lab on `0.0.0.0` or on an untrusted Wi-Fi.
+
 ## Verify the setup
 
 Check the PHP version (it must show 8.4.4):
@@ -108,12 +141,12 @@ git pull
 docker compose up -d --build
 ```
 
-Reset the lab to its initial state (clean database, no uploaded images):
+Reset the lab to its initial state (clean database, no uploaded images, sample product images are kept):
 
 ```bash
 docker compose down -v
 rm -f src/data/shop.sqlite
-find src/public/uploads -type f ! -name .gitkeep -delete
+find src/public/uploads -type f ! -name .gitkeep ! -name 'sample-*' -delete
 docker compose up -d --build
 ```
 
@@ -135,7 +168,7 @@ online_shop/
   src/
     includes/                config.php, header.php, footer.php
     public/                  application pages (Nginx document root)
-      uploads/               uploaded images
+      uploads/               uploaded images and the 12 sample product images (sample-*.svg)
     data/                    SQLite database (created automatically)
 ```
 

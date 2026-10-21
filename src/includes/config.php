@@ -48,20 +48,21 @@ $pdo->exec("CREATE TABLE IF NOT EXISTS order_items (
 // Sample data, created only the first time
 if ((int)$pdo->query("SELECT COUNT(*) FROM products")->fetchColumn() === 0) {
     $sample = [
-        ['Linen Shirt', 'Lightweight linen shirt with a relaxed fit.', 49.00],
-        ['Classic White Tee', 'Soft cotton t-shirt for everyday wear.', 19.90],
-        ['Slim Fit Jeans', 'Stretch denim jeans with a modern cut.', 69.00],
-        ['Wool Blend Coat', 'Warm long coat for the colder months.', 149.00],
-        ['Knit Cardigan', 'Fine knit cardigan with button front.', 59.00],
-        ['Summer Dress', 'Flowing midi dress in breathable fabric.', 79.00],
-        ['Canvas Sneakers', 'Low-top sneakers with a rubber sole.', 54.00],
-        ['Leather Belt', 'Full grain leather belt with a brushed buckle.', 29.00],
-        ['Cotton Chinos', 'Straight chinos in washed cotton twill.', 59.00],
-        ['Silk Scarf', 'Printed silk scarf, light and smooth.', 34.00],
-        ['Hooded Sweatshirt', 'Heavy fleece hoodie with a kangaroo pocket.', 64.00],
-        ['Leather Tote Bag', 'Roomy tote bag with an inner zip pocket.', 99.00],
+        ['Linen Shirt', 'Lightweight linen shirt with a relaxed fit.', 49.00, 'sample-linen-shirt.svg'],
+        ['Classic White Tee', 'Soft cotton t-shirt for everyday wear.', 19.90, 'sample-classic-white-tee.svg'],
+        ['Slim Fit Jeans', 'Stretch denim jeans with a modern cut.', 69.00, 'sample-slim-fit-jeans.svg'],
+        ['Wool Blend Coat', 'Warm long coat for the colder months.', 149.00, 'sample-wool-blend-coat.svg'],
+        ['Knit Cardigan', 'Fine knit cardigan with button front.', 59.00, 'sample-knit-cardigan.svg'],
+        ['Summer Dress', 'Flowing midi dress in breathable fabric.', 79.00, 'sample-summer-dress.svg'],
+        ['Canvas Sneakers', 'Low-top sneakers with a rubber sole.', 54.00, 'sample-canvas-sneakers.svg'],
+        ['Leather Belt', 'Full grain leather belt with a brushed buckle.', 29.00, 'sample-leather-belt.svg'],
+        ['Cotton Chinos', 'Straight chinos in washed cotton twill.', 59.00, 'sample-cotton-chinos.svg'],
+        ['Silk Scarf', 'Printed silk scarf, light and smooth.', 34.00, 'sample-silk-scarf.svg'],
+        ['Hooded Sweatshirt', 'Heavy fleece hoodie with a kangaroo pocket.', 64.00, 'sample-hooded-sweatshirt.svg'],
+        ['Leather Tote Bag', 'Roomy tote bag with an inner zip pocket.', 99.00, 'sample-leather-tote-bag.svg'],
     ];
-    $stmt = $pdo->prepare("INSERT INTO products (name, description, price) VALUES (?, ?, ?)");
+    // The sample images live in public/uploads/, the same folder used by the upload module
+    $stmt = $pdo->prepare("INSERT INTO products (name, description, price, image) VALUES (?, ?, ?, ?)");
     foreach ($sample as $p) {
         $stmt->execute($p);
     }

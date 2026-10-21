@@ -3,9 +3,13 @@ src/data/*
 !src/data/.gitkeep
 src/public/uploads/*
 !src/public/uploads/.gitkeep
+!src/public/uploads/sample-*.svg
 
 # Editor and system files
 .DS_Store
 .vscode/
 .idea/
 *.swp
+
+# Local network override for bridged mode
+docker-compose.override.yml
