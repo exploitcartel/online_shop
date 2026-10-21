@@ -41,7 +41,7 @@ Simple structure: no framework, no Composer, no external dependencies.
 
 ## Lab rules
 
-1. The port is bound to `127.0.0.1` only, so the app is not reachable from other devices on the network.
+1. The lab is published on port 8080, so other devices on the same private network (for example a bridged virtual machine or your own computer) can reach it. Use it only on a private, trusted network. To restrict it to the local machine, set `BIND_IP=127.0.0.1` (see below).
 2. All tests are done only in this lab environment, with sample data.
 3. After each session, remove the environment with `docker compose down -v` and clear the contents of `src/data/` and `src/public/uploads/`.
 
@@ -65,46 +65,54 @@ docker compose up -d --build
 
 Step 3. Open it in the browser: http://127.0.0.1:8080
 
-If the lab runs in an Ubuntu virtual machine and you open it from your main computer, use an SSH tunnel instead of exposing the port:
+From another machine on the same network (another virtual machine or your main computer), open `http://VM_ADDRESS:8080`. To find the address of the machine that runs Docker:
 
 ```bash
-ssh -L 8080:127.0.0.1:8080 username@UBUNTU_IP
+hostname -I
 ```
-
-Then open http://127.0.0.1:8080 on your own computer.
 
 ## Access from another machine (bridged network)
 
-By default the lab listens on `127.0.0.1` only, on purpose, so nobody else on the network can reach a vulnerable application. With a VirtualBox bridged adapter the virtual machine gets its own address on your network, but the port still answers only on the loopback address, so other machines get "connection refused".
+The lab listens on all network interfaces of the machine that runs Docker, on port 8080. With a VirtualBox bridged adapter the virtual machine has its own address on your network, so other virtual machines and your main computer can open `http://VM_ADDRESS:8080` with no extra steps.
 
-To open it from your main computer, publish the port on the virtual machine's network address only, using an override file that is not committed to Git:
+If other machines cannot connect, check these points in order:
+
+1. The VirtualBox network adapter is set to "Bridged Adapter", and `hostname -I` shows an address in the same range as your main computer.
+2. The published port shows `0.0.0.0:8080->80/tcp`:
 
 ```bash
-IP=$(hostname -I | awk '{print $1}')
-cat > docker-compose.override.yml <<EOF
-services:
-  nginx:
-    ports:
-      - "$IP:8080:80"
-EOF
-docker compose up -d
-echo "Open http://$IP:8080 from your main computer"
+docker compose ps
 ```
 
-If Ubuntu runs the `ufw` firewall, allow only your own network (adjust the range):
+3. The lab answers on the network address from inside the virtual machine itself:
 
 ```bash
+curl -I http://$(hostname -I | awk '{print $1}'):8080
+```
+
+4. If the `ufw` firewall is active, allow your own network (adjust the range):
+
+```bash
+sudo ufw status
 sudo ufw allow from 192.168.1.0/24 to any port 8080 proto tcp
 ```
 
-To go back to localhost only:
+Restrict the lab to the local machine only (use an SSH tunnel if you still need access from your main computer):
 
 ```bash
-rm docker-compose.override.yml
+echo "BIND_IP=127.0.0.1" > .env
+docker compose up -d
+ssh -L 8080:127.0.0.1:8080 username@UBUNTU_IP
+```
+
+Open it to the network again:
+
+```bash
+rm .env
 docker compose up -d
 ```
 
-Use this only on a private, trusted network. Never publish the lab on `0.0.0.0` or on an untrusted Wi-Fi.
+Use the network mode only on a private, trusted network. Never run the lab on a public server or an untrusted Wi-Fi.
 
 ## Verify the setup
 

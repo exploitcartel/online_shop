@@ -44,7 +44,6 @@ if (!function_exists('shop_card')) {
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<div class="lab-banner">LAB ENVIRONMENT. Intentionally vulnerable application. Never use it on the internet.</div>
 
 <header class="site-header">
     <div class="container header-inner">

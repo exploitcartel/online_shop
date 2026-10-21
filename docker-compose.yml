@@ -1,4 +1,4 @@
-# ISOLATED LAB ENVIRONMENT. Never expose this outside the local machine.
+# LAB ENVIRONMENT. Use only on a private, trusted network.
 services:
   php:
     build: ./php
@@ -14,8 +14,9 @@ services:
     image: nginx:1.27-alpine
     container_name: shoplab-nginx
     ports:
-      # Bound to localhost only, so the lab is not reachable from the network
-      - "127.0.0.1:8080:80"
+      # Reachable from the local network (bridged virtual machines, your own PC).
+      # To lock it to this machine only, put BIND_IP=127.0.0.1 in a .env file.
+      - "${BIND_IP:-0.0.0.0}:8080:80"
     volumes:
       - ./src:/var/www/html:ro
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro

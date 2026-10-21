@@ -13,3 +13,6 @@ src/public/uploads/*
 
 # Local network override for bridged mode
 docker-compose.override.yml
+
+# Local settings (for example BIND_IP)
+.env
