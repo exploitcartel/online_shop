@@ -1,0 +1,11 @@
+# Database and uploaded files created during the lab are not committed
+src/data/*
+!src/data/.gitkeep
+src/public/uploads/*
+!src/public/uploads/.gitkeep
+
+# Editor and system files
+.DS_Store
+.vscode/
+.idea/
+*.swp
